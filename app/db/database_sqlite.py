@@ -22,10 +22,11 @@ try:
         """CREATE TABLE IF NOT EXISTS users (
                     id INTEGER PRIMARY KEY,
                     name TEXT NOT NULL,
-                    username TEXT NOT NULL,
+                    username TEXT UNIQUE NOT NULL,
                     password TEXT NOT NULL,
                     role_id INTEGER NOT NULL,
-                    FOREIGN KEY (role_id) REFERENCES roles(id)
+                    FOREIGN KEY (role_id) REFERENCES roles(id),
+                    CONSTRAINT valid_role CHECK (role_id IN (1, 2))
             )""",
         """CREATE TABLE IF NOT EXISTS products (
                     id INTEGER PRIMARY KEY,
@@ -61,13 +62,19 @@ try:
         """CREATE TABLE IF NOT EXISTS roles (
                    id INTEGER PRIMARY KEY,
                    name TEXT NOT NULL
+            )""",
+         """CREATE TABLE IF NOT EXISTS set_order (
+                    id INTEGER PRIMARY KEY,
+                    set_id INTEGER NOT NULL,
+                    order_id INTEGER NOT NULL,
+                    FOREIGN KEY (set_id) REFERENCES sets(id),
+                    FOREIGN KEY (order_id) REFERENCES orders(id)
             )"""
         ]
         for q in queries:
             cursor.execute(q)
 
         db.commit()
-        print("Всё хорошо.")
 except sqlite3.Error as e:
     print("Ошибка при работе с базой данных:", e)
 
