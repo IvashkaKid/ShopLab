@@ -1,5 +1,6 @@
 import sqlite3
 import bcrypt
+from prettytable import PrettyTable
 
 database_path = 'db/database.db'
 
@@ -66,11 +67,10 @@ def main_menu():
         print("3. Оформить заказ")
         print("4. Выйти из аккаунта")
         choice = input("Enter your choice: ")
-        if choice == 1:
+        if choice == "1":
             catalog_menu()
-        if choice == 4:
+        if choice == "4":
             return None
-        break
 
 
 def admin_menu():
@@ -101,17 +101,54 @@ def auth_menu():
             return user[4]
     elif choice == "3":
         print("Exiting the program")
-        return False
+        raise SystemExit(1)
 
 
 def catalog_menu():
-    print("Catalog Menu")
-    print("1. View all products")
-    print("2. View all sets")
-    print("3. Exit")
+    while True:
+        print("Catalog Menu")
+        print("1. View all products")
+        print("2. View all sets")
+        print("3. Exit")
 
-    choice = input("Enter your choice: ")
-    return choice
+        choice = input("Enter your choice: ")
+        if choice == "1":
+            products = get_all_products()
+            for product in products:
+                print(product)
+        if choice == "2":
+            sets = get_all_sets()
+            table = PrettyTable()
+            table.field_names = ["ID", "Название", "Скидка %", "Старая цена","Новая цена"]
+            table.add_rows(sets)
+
+            print(table)
+            while True:
+                print("Введите id набора для его просмотра, 0 для выхода в меню, 00 для отображения всех наборов")
+                choice = (input("Хотите посмотреть какой-нибудь набор?: "))
+                if choice == "0":
+                    return False
+                if choice == "00":
+                    print(table)
+                    continue
+
+                try:
+                    choice = int(choice)
+                except ValueError:
+                    print("Пожалуйста, введите правильное число.")
+                    continue
+
+                set_one = get_set(choice)
+
+                if set_one:
+                    table_set = PrettyTable()
+                    table_set.field_names = ["ID продукта", "Название продукта","Количеество", "Старая цена", "Новая цена", "Категория", "Стиль"]
+                    table_set.add_rows(set_one)
+                    print(table_set)
+                else:
+                    print("Набор с таким id не найден.")
+        if choice == "3":
+            return False
 
 
 def get_all_products():
@@ -131,7 +168,14 @@ def get_all_sets():
     db = sqlite3.connect(database_path)
     cursor = db.cursor()
 
-    query = "SELECT * FROM sets"
+    query = """
+            SELECT s.id, s.name,s.discount, SUM(p.price) AS old_price,
+            SUM( p.price - (p.price * (s.discount/100.0))) AS new_price
+            FROM sets s 
+            LEFT JOIN set_items si ON s.id = si.set_id 
+            LEFT JOIN products p ON si.product_id = p.id 
+            GROUP BY set_id
+            """
     cursor.execute(query)
     sets = cursor.fetchall()
 
@@ -139,6 +183,26 @@ def get_all_sets():
 
     return sets
 
+
+def get_set(id):
+    db = sqlite3.connect(database_path)
+    cursor = db.cursor()
+
+    query = """SELECT p.id AS product_id, p.name AS product, si.quantity,p.price * si.quantity AS old_price, 
+    p.price * si.quantity - (p.price * si.quantity * (s.discount / 100.0)) AS new_price , c.name AS category, 
+    st.name AS style 
+    FROM sets s 
+    LEFT JOIN set_items si ON s.id = si.set_id 
+    LEFT JOIN products p ON si.product_id = p.id 
+    LEFT JOIN categories c ON c.id = p.category_id 
+    LEFT JOIN style st ON st.id = p.style_id 
+    WHERE s.id == ?"""
+    cursor.execute(query, (id,))
+    set_one = cursor.fetchall()
+
+    db.close()
+
+    return set_one
 
 def main():
     user_role_id = None
