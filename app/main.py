@@ -1,8 +1,16 @@
 import sqlite3
 import bcrypt
 from prettytable import PrettyTable
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+from db.models import Category, Style, Set, Product, OrderItem, SetItem, Role, User, SetOrder, Order
+from sqlalchemy import inspect
 
 database_path = 'db/database.db'
+
+engine = create_engine('sqlite:///db/database.db')
+Session = sessionmaker(bind=engine)
+session = Session()
 
 
 def hash_password(password):
@@ -99,59 +107,6 @@ def create_order(cart, user):
         print("Корзина пуста")
 
 
-def create_product(name, price, category_id, style_id):
-    db = sqlite3.connect(database_path)
-    cursor = db.cursor()
-    try:
-        cursor.execute("SELECT * FROM categories WHERE id = ?", (category_id,))
-        category = cursor.fetchone()
-
-        cursor.execute("SELECT * FROM style WHERE id = ?", (style_id,))
-        style = cursor.fetchone()
-
-        if category:
-            if style:
-                cursor.execute("INSERT INTO products (name, price, category_id, style_id) VALUES (?,?,?,?)",
-                               (name, price,
-                                category_id, style_id)
-                               )
-                db.commit()
-                print("Товар успешно создан")
-            else:
-                print("ID такого стиля не найдено")
-        print("ID такой категории не найдено")
-    except sqlite3.Error as e:
-        print("Ошибка базы данных:", e)
-    finally:
-        db.close()
-
-
-def create_category(name):
-    db = sqlite3.connect(database_path)
-    cursor = db.cursor()
-    try:
-        cursor.execute("INSERT INTO categories (name) VALUES (?)", (name,))
-        db.commit()
-        print("Категория успешно создана")
-    except sqlite3.Error as e:
-        print("Ошибка базы данных:", e)
-    finally:
-        db.close()
-
-
-def create_style(name):
-    db = sqlite3.connect(database_path)
-    cursor = db.cursor()
-    try:
-        cursor.execute("INSERT INTO style (name) VALUES (?)", (name,))
-        db.commit()
-        print("Стиль успешно создана")
-    except sqlite3.Error as e:
-        print("Ошибка базы данных:", e)
-    finally:
-        db.close()
-
-
 def main_menu(cart, user):
     while True:
         print("1. Посмотреть каталог")
@@ -214,43 +169,118 @@ def main_menu(cart, user):
             return None
 
 
+def get_all_products_orm():
+    products = session.query(Product).all()
+
+    table = PrettyTable()
+    table.field_names = ["ID", "Name", "Price", "Category", "Style"]
+
+    # Собираем данные для всех товаров в список
+    rows = []
+    for product in products:
+        category_name = product.category.name if product.category else ""
+        style_name = product.style.name if product.style else ""
+        rows.append([product.id, product.name, product.price, category_name, style_name])
+
+    # Добавляем все строки в таблицу с помощью метода add_rows
+    table.add_rows(rows)
+
+    print(table)
+
+
+def add_product():
+    name = input("Введите название товара: ")
+    while True:
+        try:
+            price = float(input("Введите цену товара: "))
+            break
+        except ValueError:
+            print("Ошибка: введите числовое значение для цены.")
+
+    while True:
+        try:
+            category_id = int(input("Введите ID категории товара: "))
+            # Проверка существования категории с указанным ID
+            if session.query(Category).filter_by(id=category_id).count() == 0:
+                print("Ошибка: категория с указанным ID не существует.")
+                continue
+            break
+        except ValueError:
+            print("Ошибка: введите целочисленное значение для ID категории.")
+
+    while True:
+        try:
+            style_id = int(input("Введите ID стиля товара: "))
+            # Проверка существования стиля с указанным ID
+            if session.query(Style).filter_by(id=style_id).count() == 0:
+                print("Ошибка: стиль с указанным ID не существует.")
+                continue
+            break
+        except ValueError:
+            print("Ошибка: введите целочисленное значение для ID стиля.")
+
+    new_product = Product(name=name, price=price, category_id=category_id, style_id=style_id)
+    session.add(new_product)
+    session.commit()
+    print(f"Добавлен новый товар: {name}")
+
+
+def delete_product():
+    while True:
+        try:
+            product_id = int(input("Введите ID товара для удаления: "))
+            # Проверка существования товара с указанным ID
+            if session.query(Product).filter_by(id=product_id).count() == 0:
+                print("Ошибка: товар с указанным ID не существует.")
+                continue
+            break
+        except ValueError:
+            print("Ошибка: введите целочисленное значение для ID товара.")
+
+    product = session.query(Product).filter_by(id=product_id).first()
+    session.delete(product)
+    session.commit()
+    print(f"Товар с ID {product_id} удален")
+
+
 def admin_menu():
     while True:
-        print("1. Создать товар")
-        print("2. Создать Категорию")
-        print("3. Создать стиль")
-        print("4. Создать набор")
-        print("5. Получить список заказов")
+        print("1. Товары")
+        print("2. Категории и стили")
+        print("3. Наборы")
+        print("4. Заказы")
+        print("5. Пользователи")
         print("6. Выйти из аккаунта")
         choice = input("Enter your choice: ")
 
         if choice == "1":
-            name = input("Введите имя продукта: ")
-            try:
-                price = int(input("Введите стоимость продукта: "))
-            except:
-                print("Цена должна быть числом")
-                continue
-            try:
-                category_id = int(input("Введите id категории продукта: "))
-            except:
-                print("Категория должна быть числом")
-                continue
-            try:
-                style_id = int(input("Введите id стиля продукта: "))
-            except:
-                print("Стиль должен быть числом")
-                continue
-            create_product(name, price, category_id, style_id)
+            product_menu()
         if choice == "2":
-            name = input("Введите имя категории: ")
-            create_category(name)
+            pass
         if choice == "3":
-            name = input("Введите имя стиля: ")
-            create_style(name)
-
+            pass
         if choice == "6":
             return None
+
+
+def product_menu():
+    while True:
+        print("1. Получить список товаров")
+        print("2. Добавить товар")
+        print("3. Удалить товар")
+        print("4. Назад")
+        choice = input("Введите ваш выбор: ")
+
+        if choice == "1":
+            print(get_all_products_orm())
+        elif choice == "2":
+            add_product()
+        elif choice == "3":
+            delete_product()
+        elif choice == "4":
+            return None
+        else:
+            print("Неверный выбор. Пожалуйста, выберите снова.")
 
 
 def auth_menu():
