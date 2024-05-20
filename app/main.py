@@ -43,7 +43,7 @@ def auth(username, password):
     db = sqlite3.connect(database_path)
     cursor = db.cursor()
     query = """SELECT * FROM users WHERE username=?"""
-    cursor.execute(query, (username, ))
+    cursor.execute(query, (username,))
     user = cursor.fetchone()
 
     db.close()
@@ -60,7 +60,8 @@ def auth(username, password):
         print("Неправильный логин или пароль")
         return None
 
-def main_menu():
+
+def main_menu(cart):
     while True:
         print("1. Посмотреть каталог")
         print("2. Посмотреть корзину")
@@ -68,8 +69,57 @@ def main_menu():
         print("4. Выйти из аккаунта")
         choice = input("Enter your choice: ")
         if choice == "1":
-            catalog_menu()
-        if choice == "4":
+            catalog_menu(cart)
+        elif choice == "2":
+            cart_table = PrettyTable()
+            cart_table.field_names = ["id", "Тип продукта", "Корзина", "Количество", "Цена за штуку", "Цена"]
+            n = 1
+            for types in cart:
+                for product in cart[types]:
+                    product[0] = n
+                    cart_table.add_row(product)
+                    n += 1
+            print(cart_table)
+            while True:
+                print("1. Оформление заказа")
+                print("2. Удаление позиции из корзины")
+                print("3. Изменение количества товара")
+                print("4. Выход из меню")
+                choice = input("Введите ваш выбор: ")
+                if choice == "2":
+                    choice = input("Какую позицию вы хотите удалить?: ")
+                    try:
+                        choice = int(choice)
+                    except ValueError:
+                        print("Пожалуйста, введите правильное число.")
+                        continue
+                    for types in cart:
+                        for product in cart[types]:
+                            if product[0] == choice:
+                                cart[types].remove(product)
+                                print("Удаление успешно")
+
+                if choice == "3":
+                    choice = input("Какую позицию вы хотите изменить?: ")
+                    try:
+                        choice = int(choice)
+                    except ValueError:
+                        print("Пожалуйста, введите правильное число.")
+                        continue
+                    for types in cart:
+                        n = 0
+                        for product in cart[types]:
+                            if product[0] == choice:
+                                quantity = int(input("Новое значеение количества: "))
+                                cart[types][n][3] = quantity
+                                cart[types][n][5] = quantity * cart[types][n][4]
+                                print("Изменение успешно")
+                            n += 1
+
+                if choice == "4":
+                    break
+
+        elif choice == "4":
             return None
 
 
@@ -104,7 +154,7 @@ def auth_menu():
         raise SystemExit(1)
 
 
-def catalog_menu():
+def catalog_menu(cart):
     while True:
         print("Catalog Menu")
         print("1. View all products")
@@ -114,12 +164,44 @@ def catalog_menu():
         choice = input("Enter your choice: ")
         if choice == "1":
             products = get_all_products()
-            for product in products:
-                print(product)
+            product_table = PrettyTable()
+            product_table.field_names = ["ID", "Название", "Цена", "Категория", "Стиль"]
+            product_table.add_rows(products)
+            print(product_table)
+            while True:
+                choice = input(
+                    "Для добавления товара в корзину введите его ID, для выхода из меню нажмите 0, для отображения списка продуктов нажмите 00: ")
+                if choice == "0":
+                    return False
+                elif choice == "00":
+                    print(product_table)
+                    continue
+                try:
+                    choice = int(choice)
+                except ValueError:
+                    print("Пожалуйста, введите правильное число.")
+                    continue
+                product = ["1", "Продукт", get_product(choice)]
+
+                if product:
+                    quantity = input("Введите количество товара: ")
+                    try:
+                        quantity = int(quantity)
+                    except ValueError:
+                        print("Пожалуйста, введите правильное число.")
+                        continue
+                    product.append(quantity)
+                    product.append(product[2][0][2])
+                    product.append(product[2][0][2] * quantity)
+                    cart['products'].append(product)
+                    print(f'Продукт {product[2][0][1]} в количестве {quantity} успешно добавлен в корзину')
+                else:
+                    print("Продукта с таким ID не найдено")
+
         if choice == "2":
             sets = get_all_sets()
             table = PrettyTable()
-            table.field_names = ["ID", "Название", "Скидка %", "Старая цена","Новая цена"]
+            table.field_names = ["ID", "Название", "Скидка %", "Старая цена", "Новая цена"]
             table.add_rows(sets)
 
             print(table)
@@ -142,9 +224,23 @@ def catalog_menu():
 
                 if set_one:
                     table_set = PrettyTable()
-                    table_set.field_names = ["ID продукта", "Название продукта","Количеество", "Старая цена", "Новая цена", "Категория", "Стиль"]
+                    table_set.field_names = ["ID продукта", "Название продукта", "Количеество", "Старая цена",
+                                             "Новая цена", "Категория", "Стиль"]
                     table_set.add_rows(set_one)
                     print(table_set)
+                    quantity = input("Введите количство наборов которое хотите добавить в корзину или нажмите 0 для "
+                                     "выхода из меню: ")
+                    if quantity == "0":
+                        continue
+                    try:
+                        quantity = int(quantity)
+                    except ValueError:
+                        print("Пожалуйста, введите правильное число.")
+                        continue
+                    set_table = ["1", "Набор", sets[choice - 1], quantity, sets[choice - 1][4],
+                                 sets[choice - 1][4] * quantity]
+                    cart['sets'].append(set_table)
+                    print(f'Набор {sets[choice - 1]} в количестве {quantity} успешно добавлен в корзину')
                 else:
                     print("Набор с таким id не найден.")
         if choice == "3":
@@ -155,13 +251,35 @@ def get_all_products():
     db = sqlite3.connect(database_path)
     cursor = db.cursor()
 
-    query = "SELECT * FROM products"
+    query = """
+            SELECT p.id, p.name, price, c.name, s.name FROM products p
+            LEFT JOIN categories c ON c.id = p.category_id
+            LEFT JOIN style s on s.id = p.style_id
+            """
     cursor.execute(query)
     products = cursor.fetchall()
 
     db.close()
 
     return products
+
+
+def get_product(id):
+    db = sqlite3.connect(database_path)
+    cursor = db.cursor()
+
+    query = """
+            SELECT p.id, p.name, price, c.name, s.name FROM products p
+            LEFT JOIN categories c ON c.id = p.category_id
+            LEFT JOIN style s on s.id = p.style_id
+            WHERE p.id == ?
+            """
+    cursor.execute(query, (id,))
+    product = cursor.fetchall()
+
+    db.close()
+
+    return product
 
 
 def get_all_sets():
@@ -204,15 +322,20 @@ def get_set(id):
 
     return set_one
 
+
 def main():
     user_role_id = None
+    cart = {'products': [],
+            'sets': []}
     while True:
         # Блок меню авторизации
         if user_role_id is None:
             user_role_id = auth_menu()
+            cart = {'products': [],
+                    'sets': []}
         # Блок основного меню
         if user_role_id == 1:
-            user_role_id = main_menu()
+            user_role_id = main_menu(cart)
         elif user_role_id == 2:
             user_role_id = admin_menu()
 
