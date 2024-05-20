@@ -126,6 +126,32 @@ def create_product(name, price, category_id, style_id):
         db.close()
 
 
+def create_category(name):
+    db = sqlite3.connect(database_path)
+    cursor = db.cursor()
+    try:
+        cursor.execute("INSERT INTO categories (name) VALUES (?)", (name,))
+        db.commit()
+        print("Категория успешно создана")
+    except sqlite3.Error as e:
+        print("Ошибка базы данных:", e)
+    finally:
+        db.close()
+
+
+def create_style(name):
+    db = sqlite3.connect(database_path)
+    cursor = db.cursor()
+    try:
+        cursor.execute("INSERT INTO style (name) VALUES (?)", (name,))
+        db.commit()
+        print("Стиль успешно создана")
+    except sqlite3.Error as e:
+        print("Ошибка базы данных:", e)
+    finally:
+        db.close()
+
+
 def main_menu(cart, user):
     while True:
         print("1. Посмотреть каталог")
@@ -216,6 +242,13 @@ def admin_menu():
                 print("Стиль должен быть числом")
                 continue
             create_product(name, price, category_id, style_id)
+        if choice == "2":
+            name = input("Введите имя категории: ")
+            create_category(name)
+        if choice == "3":
+            name = input("Введите имя стиля: ")
+            create_style(name)
+
         if choice == "6":
             return None
 
