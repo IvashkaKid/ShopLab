@@ -99,6 +99,33 @@ def create_order(cart, user):
         print("Корзина пуста")
 
 
+def create_product(name, price, category_id, style_id):
+    db = sqlite3.connect(database_path)
+    cursor = db.cursor()
+    try:
+        cursor.execute("SELECT * FROM categories WHERE id = ?", (category_id,))
+        category = cursor.fetchone()
+
+        cursor.execute("SELECT * FROM style WHERE id = ?", (style_id,))
+        style = cursor.fetchone()
+
+        if category:
+            if style:
+                cursor.execute("INSERT INTO products (name, price, category_id, style_id) VALUES (?,?,?,?)",
+                               (name, price,
+                                category_id, style_id)
+                               )
+                db.commit()
+                print("Товар успешно создан")
+            else:
+                print("ID такого стиля не найдено")
+        print("ID такой категории не найдено")
+    except sqlite3.Error as e:
+        print("Ошибка базы данных:", e)
+    finally:
+        db.close()
+
+
 def main_menu(cart, user):
     while True:
         print("1. Посмотреть каталог")
@@ -162,7 +189,35 @@ def main_menu(cart, user):
 
 
 def admin_menu():
-    pass
+    while True:
+        print("1. Создать товар")
+        print("2. Создать Категорию")
+        print("3. Создать стиль")
+        print("4. Создать набор")
+        print("5. Получить список заказов")
+        print("6. Выйти из аккаунта")
+        choice = input("Enter your choice: ")
+
+        if choice == "1":
+            name = input("Введите имя продукта: ")
+            try:
+                price = int(input("Введите стоимость продукта: "))
+            except:
+                print("Цена должна быть числом")
+                continue
+            try:
+                category_id = int(input("Введите id категории продукта: "))
+            except:
+                print("Категория должна быть числом")
+                continue
+            try:
+                style_id = int(input("Введите id стиля продукта: "))
+            except:
+                print("Стиль должен быть числом")
+                continue
+            create_product(name, price, category_id, style_id)
+        if choice == "6":
+            return None
 
 
 def auth_menu():
@@ -183,7 +238,7 @@ def auth_menu():
         username = input("Enter your username: ")
         password = input("Enter your password: ")
         name = input("Enter your name: ")
-        role_id = 1
+        role_id = 2
         user = register(username, password, name, role_id)
         if user:
             return user
