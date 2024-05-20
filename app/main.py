@@ -1,6 +1,17 @@
 import sqlite3
+import bcrypt
 
 database_path = 'db/database.db'
+
+
+def hash_password(password):
+    salt = bcrypt.gensalt()
+    hashed_password = bcrypt.hashpw(password.encode('utf-8'), salt)
+    return hashed_password.decode('utf-8')
+
+
+def check_password(password, hash_password):
+    return bcrypt.checkpw(password.encode('utf-8'), hash_password.encode('utf-8'))
 
 
 def register(username, password, name, role_id):
@@ -17,6 +28,7 @@ def register(username, password, name, role_id):
 
     query = "INSERT INTO users (username, password, name, role_id) VALUES (?, ?, ?, ?)"
     try:
+        password = hash_password(password)
         cursor.execute(query, (username, password, name, role_id))
         db.commit()
         print("Регистрация успешна")
@@ -29,19 +41,23 @@ def register(username, password, name, role_id):
 def auth(username, password):
     db = sqlite3.connect(database_path)
     cursor = db.cursor()
-
-    query = """SELECT * FROM users WHERE username=? AND password=?"""
-    cursor.execute(query, (username, password))
+    query = """SELECT * FROM users WHERE username=?"""
+    cursor.execute(query, (username, ))
     user = cursor.fetchone()
 
     db.close()
 
     if user:
-        print("Вы вошли успешно")
-        return user
+        saved_password = user[3]
+        if check_password(password, saved_password):
+            print("Вы вошли успешно")
+            return user
+        else:
+            print("Неправильный логин или пароль")
+            return None
     else:
         print("Неправильный логин или пароль")
-
+        return None
 
 def main_menu():
     while True:
@@ -86,7 +102,6 @@ def auth_menu():
     elif choice == "3":
         print("Exiting the program")
         return False
-
 
 
 def catalog_menu():
@@ -136,8 +151,6 @@ def main():
             user_role_id = main_menu()
         elif user_role_id == 2:
             user_role_id = admin_menu()
-
-
 
 
 if __name__ == "__main__":
