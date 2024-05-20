@@ -39,9 +39,9 @@ try:
             )""",
             """CREATE TABLE IF NOT EXISTS orders (
                     id INTEGER PRIMARY KEY,
-                    customer_id INTEGER NOT NULL,
+                    user_id INTEGER NOT NULL,
                     total_price REAL,
-                    FOREIGN KEY (customer_id) REFERENCES customers(id)
+                    FOREIGN KEY (user_id) REFERENCES users(id)
             )""",
             """CREATE TABLE IF NOT EXISTS order_items (
                     id INTEGER PRIMARY KEY,
@@ -67,6 +67,7 @@ try:
                     id INTEGER PRIMARY KEY,
                     set_id INTEGER NOT NULL,
                     order_id INTEGER NOT NULL,
+                    quantity INTEGER NOT NULL,
                     FOREIGN KEY (set_id) REFERENCES sets(id),
                     FOREIGN KEY (order_id) REFERENCES orders(id)
             )"""
