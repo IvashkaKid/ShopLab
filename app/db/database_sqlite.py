@@ -41,6 +41,7 @@ try:
                     id INTEGER PRIMARY KEY,
                     user_id INTEGER NOT NULL,
                     total_price REAL,
+                    order_date TEXT DEFAULT (datetime('now')),
                     FOREIGN KEY (user_id) REFERENCES users(id)
             )""",
             """CREATE TABLE IF NOT EXISTS order_items (
