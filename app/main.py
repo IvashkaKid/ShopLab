@@ -103,6 +103,7 @@ def create_order(cart, user):
         db.commit()
         cart['products'] = []
         cart['sets'] = []
+        print(f'Заказ {order} успешно создан')
         db.close()
 
     else:
@@ -587,12 +588,12 @@ def auth_menu():
 
 def catalog_menu(cart):
     while True:
-        print("Catalog Menu")
-        print("1. View all products")
-        print("2. View all sets")
-        print("3. Exit")
+        print("Меню каталога")
+        print("1. Просмотреть все товары")
+        print("2. Просмотреть все наборы")
+        print("3. Выйти")
 
-        choice = input("Enter your choice: ")
+        choice = input("Введите ваш выбор: ")
         if choice == "1":
             products = get_all_products()
             product_table = PrettyTable()
@@ -628,6 +629,7 @@ def catalog_menu(cart):
                     print(f'Продукт {product[2][0][1]} в количестве {quantity} успешно добавлен в корзину')
                 else:
                     print("Продукта с таким ID не найдено")
+
 
         if choice == "2":
             sets = get_all_sets()
