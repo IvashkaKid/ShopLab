@@ -101,8 +101,10 @@ def create_order(cart, user):
 
         cursor.execute("UPDATE orders SET (total_price) = (?) WHERE id = (?) ", (total_price, order,))
         db.commit()
-
+        cart['products'] = []
+        cart['sets'] = []
         db.close()
+
     else:
         print("Корзина пуста")
 
@@ -429,6 +431,42 @@ def view_products_in_set():
         print("Ошибка: введите корректное числовое значение для ID набора.")
 
 
+def get_all_orders():
+    try:
+        orders = session.query(Order).all()
+        if not orders:
+            print("В базе данных нет заказов.")
+            return
+
+        table = PrettyTable()
+        table.field_names = ["ID", "Пользователь", "Дата заказа", "Общая сумма"]
+
+        for order in orders:
+            table.add_row([order.id, order.user.name, order.order_date, order.total_price])
+
+        print("Список заказов:")
+        print(table)
+    except Exception as e:
+        print("Ошибка при получении списка заказов:", e)
+
+def get_all_users():
+    try:
+        users = session.query(User).all()
+        if not users:
+            print("В базе данных нет пользователей.")
+            return
+
+        table = PrettyTable()
+        table.field_names = ["ID", "Имя", "Логин", "Роль"]
+
+        for user in users:
+            table.add_row([user.id, user.name, user.username, user.role.name])
+
+        print("Список пользователей:")
+        print(table)
+    except Exception as e:
+        print("Ошибка при получении списка пользователей:", e)
+
 def admin_menu():
     while True:
         print("1. Товары")
@@ -443,7 +481,9 @@ def admin_menu():
         if choice == "2":
             set_menu()
         if choice == "3":
-            pass
+            get_all_orders()
+        if choice == "4":
+            get_all_users()
         if choice == "5":
             return None
 
@@ -628,7 +668,7 @@ def catalog_menu(cart):
                     set_table = ["1", "Набор", sets[choice - 1], quantity, sets[choice - 1][4],
                                  sets[choice - 1][4] * quantity]
                     cart['sets'].append(set_table)
-                    print(f'Набор {sets[choice - 1]} в количестве {quantity} успешно добавлен в корзину')
+                    print(f'Набор {sets[choice - 1][1]} в количестве {quantity} успешно добавлен в корзину')
                 else:
                     print("Набор с таким id не найден.")
         if choice == "3":
@@ -675,12 +715,12 @@ def get_all_sets():
     cursor = db.cursor()
 
     query = """
-            SELECT s.id, s.name,s.discount, SUM(p.price) AS old_price,
-            SUM( p.price - (p.price * (s.discount/100.0))) AS new_price
-            FROM sets s 
-            LEFT JOIN set_items si ON s.id = si.set_id 
-            LEFT JOIN products p ON si.product_id = p.id 
-            GROUP BY set_id
+            SELECT s.id, s.name, s.discount, SUM(p.price * si.quantity) AS old_price,
+            SUM(p.price * si.quantity * (1 - s.discount / 100.0)) AS new_price
+            FROM sets s
+            LEFT JOIN set_items si ON s.id = si.set_id
+            LEFT JOIN products p ON si.product_id = p.id
+            GROUP BY s.id, s.name, s.discount
             """
     cursor.execute(query)
     sets = cursor.fetchall()
