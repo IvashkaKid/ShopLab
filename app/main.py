@@ -314,6 +314,121 @@ def delete_style():
     print(f"Стиль с ID {style_id} удалена")
 
 
+def get_all_sets_orm():
+    sets = session.query(Set).all()
+    table = PrettyTable()
+    table.field_names = ["ID", "Name", "Discount"]
+    for set_item in sets:
+        table.add_row([set_item.id, set_item.name, set_item.discount])
+    print(table)
+
+
+def add_set():
+    name = input("Введите название набора: ")
+
+    while True:
+        try:
+            discount = float(input("Введите скидку для набора (в процентах): "))
+            if discount < 0 or discount > 100:
+                print("Ошибка: скидка должна быть от 0 до 100.")
+                continue
+            break
+        except ValueError:
+            print("Ошибка: введите числовое значение для скидки.")
+
+    new_set = Set(name=name, discount=discount)
+    session.add(new_set)
+    session.commit()
+    print(f"Добавлен новый набор: {name} со скидкой {discount}%")
+
+
+def add_product_to_set():
+    try:
+        set_id = int(input("Введите ID набора: "))
+        set_item = session.get(Set, set_id)
+        if not set_item:
+            print("Ошибка: набор с указанным ID не существует.")
+            return
+
+        product_id = int(input("Введите ID продукта для добавления в набор: "))
+        product = session.get(Product, product_id)
+        if not product:
+            print("Ошибка: продукт с указанным ID не существует.")
+            return
+
+        quantity = int(input("Введите количество продукта: "))
+        new_set_item = SetItem(set_id=set_id, product_id=product_id, quantity=quantity)
+        session.add(new_set_item)
+        session.commit()
+        print(f"Продукт {product.name} добавлен в набор {set_item.name} в количестве {quantity}.")
+    except ValueError:
+        print("Ошибка: введите корректные числовые значения.")
+
+
+def delete_set():
+    try:
+        set_id = int(input("Введите ID набора для удаления: "))
+        set_item = session.get(Set, set_id)
+        if not set_item:
+            print("Ошибка: набор с указанным ID не существует.")
+            return
+
+        session.delete(set_item)
+        session.commit()
+        print(f"Набор {set_item.name} был удален.")
+    except ValueError:
+        print("Ошибка: введите корректное числовое значение для ID набора.")
+
+
+def remove_product_from_set():
+    try:
+        set_id = int(input("Введите ID набора: "))
+        set_item = session.get(Set, set_id)
+        if not set_item:
+            print("Ошибка: набор с указанным ID не существует.")
+            return
+
+        product_id = int(input("Введите ID продукта для удаления из набора: "))
+        set_product = session.query(SetItem).filter_by(set_id=set_id, product_id=product_id).first()
+        if not set_product:
+            print("Ошибка: продукт с указанным ID не найден в наборе.")
+            return
+
+        session.delete(set_product)
+        session.commit()
+        print(f"Продукт с ID {product_id} удален из набора {set_item.name}.")
+    except ValueError:
+        print("Ошибка: введите корректные числовые значения.")
+
+
+def view_products_in_set():
+    try:
+        set_id = int(input("Введите ID набора для просмотра продуктов: "))
+        set_item = session.get(Set, set_id)
+        if not set_item:
+            print("Ошибка: набор с указанным ID не существует.")
+            return
+
+        set_items = session.query(SetItem).filter_by(set_id=set_id).all()
+        if not set_items:
+            print("В этом наборе нет продуктов.")
+            return
+
+        table = PrettyTable()
+        table.field_names = ["ID продукта", "Название продукта", "Количество", "Оригинальная цена", "Цена со скидкой"]
+
+        for item in set_items:
+            product = session.get(Product, item.product_id)
+            original_price = product.price
+            discounted_price = original_price * (1 - set_item.discount / 100)
+            table.add_row([product.id, product.name, item.quantity, original_price, discounted_price])
+
+        print(f"Продукты в наборе '{set_item.name}':")
+        print(table)
+    except ValueError:
+        print("Ошибка: введите корректное числовое значение для ID набора.")
+
+
 def admin_menu():
     while True:
         print("1. Товары")
@@ -326,7 +441,7 @@ def admin_menu():
         if choice == "1":
             product_menu()
         if choice == "2":
-            pass
+            set_menu()
         if choice == "3":
             pass
         if choice == "5":
@@ -370,8 +485,34 @@ def product_menu():
         else:
             print("Неверный выбор. Пожалуйста, выберите снова.")
 
-def set_menu():
 
+def set_menu():
+    while True:
+        print("1. Получить список наборов")
+        print("2. Добавить набор")
+        print("3. Удалить набор")
+        print("4. Добавить продукт в набор")
+        print("5. Удалить продукт из набора")
+        print("6. Просмотреть продукты в наборе")
+        print("7. Назад")
+        choice = input("Введите ваш выбор: ")
+
+        if choice == "1":
+            get_all_sets_orm()
+        elif choice == "2":
+            add_set()
+        elif choice == "3":
+            delete_set()
+        elif choice == "4":
+            add_product_to_set()
+        elif choice == "5":
+            remove_product_from_set()
+        elif choice == "6":
+            view_products_in_set()
+        elif choice == "7":
+            return None
+        else:
+            print("Неверный выбор. Пожалуйста, выберите снова.")
 
 
 def auth_menu():
