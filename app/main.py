@@ -449,6 +449,7 @@ def get_all_orders():
     except Exception as e:
         print("Ошибка при получении списка заказов:", e)
 
+
 def get_all_users():
     try:
         users = session.query(User).all()
@@ -466,6 +467,7 @@ def get_all_users():
         print(table)
     except Exception as e:
         print("Ошибка при получении списка пользователей:", e)
+
 
 def admin_menu():
     while True:
@@ -556,30 +558,31 @@ def set_menu():
 
 
 def auth_menu():
-    print("Welcome to the Console Authentication System")
-    print("1. Login")
-    print("2. Register")
-    print("3. Exit")
+    print("Добро пожаловать в систему аутентификации через консоль")
+    print("1. Войти")
+    print("2. Зарегистрироваться")
+    print("3. Выйти")
 
-    choice = input("Enter your choice: ")
+    choice = input("Введите ваш выбор: ")
 
     if choice == "1":
-        username = input("Enter your username: ")
-        password = input("Enter your password: ")
+        username = input("Введите ваше имя пользователя: ")
+        password = input("Введите ваш пароль: ")
         user = auth(username, password)
         if user:
             return user
     elif choice == "2":
-        username = input("Enter your username: ")
-        password = input("Enter your password: ")
-        name = input("Enter your name: ")
-        role_id = 2
+        username = input("Введите ваше имя пользователя: ")
+        password = input("Введите ваш пароль: ")
+        name = input("Введите ваше имя: ")
+        role_id = 1
         user = register(username, password, name, role_id)
         if user:
             return user
     elif choice == "3":
-        print("Exiting the program")
+        print("Завершение работы программы")
         raise SystemExit(1)
+
 
 
 def catalog_menu(cart):
@@ -611,7 +614,7 @@ def catalog_menu(cart):
                     continue
                 product = ["1", "Продукт", get_product(choice)]
 
-                if product:
+                if product[2] is not None:
                     quantity = input("Введите количество товара: ")
                     try:
                         quantity = int(quantity)
@@ -707,7 +710,11 @@ def get_product(id):
 
     db.close()
 
-    return product
+    # Проверяем, найден ли продукт
+    if product:
+        return product
+    else:
+        return None
 
 
 def get_all_sets():
