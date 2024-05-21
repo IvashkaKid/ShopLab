@@ -175,14 +175,12 @@ def get_all_products_orm():
     table = PrettyTable()
     table.field_names = ["ID", "Name", "Price", "Category", "Style"]
 
-    # Собираем данные для всех товаров в список
     rows = []
     for product in products:
         category_name = product.category.name if product.category else ""
         style_name = product.style.name if product.style else ""
         rows.append([product.id, product.name, product.price, category_name, style_name])
 
-    # Добавляем все строки в таблицу с помощью метода add_rows
     table.add_rows(rows)
 
     print(table)
@@ -243,14 +241,49 @@ def delete_product():
     print(f"Товар с ID {product_id} удален")
 
 
+def get_categories():
+    categories = session.query(Category).all()
+    table = PrettyTable()
+    table.field_names = ["ID", "Name"]
+
+    for category in categories:
+        table.add_row([category.id, category.name])
+
+    print(table)
+
+
+def add_category():
+    name = input("Введите название новой категории: ")
+
+    new_category = Category(name=name)
+    session.add(new_category)
+    session.commit()
+    print(f"Добавлена новая категория: {name}")
+
+def delete_category():
+    while True:
+        try:
+            category_id = int(input("Введите ID товара для удаления: "))
+            # Проверка существования товара с указанным ID
+            if session.query(Category).filter_by(id=category_id).count() == 0:
+                print("Ошибка: товар с указанным ID не существует.")
+                continue
+            break
+        except ValueError:
+            print("Ошибка: введите целочисленное значение для ID товара.")
+
+    category = session.query(Category).filter_by(id=category_id).first()
+    session.delete(category)
+    session.commit()
+    print(f"Категория с ID {category_id} удалена")
+
 def admin_menu():
     while True:
         print("1. Товары")
-        print("2. Категории и стили")
-        print("3. Наборы")
-        print("4. Заказы")
-        print("5. Пользователи")
-        print("6. Выйти из аккаунта")
+        print("2. Наборы")
+        print("3. Заказы")
+        print("4. Пользователи")
+        print("5. Выйти из аккаунта")
         choice = input("Enter your choice: ")
 
         if choice == "1":
@@ -259,7 +292,7 @@ def admin_menu():
             pass
         if choice == "3":
             pass
-        if choice == "6":
+        if choice == "5":
             return None
 
 
@@ -268,7 +301,13 @@ def product_menu():
         print("1. Получить список товаров")
         print("2. Добавить товар")
         print("3. Удалить товар")
-        print("4. Назад")
+        print("4. Получить список категорий")
+        print("5. Добавить категорию")
+        print("6. Удалить категорию")
+        print("7. Получить список стилей")
+        print("8. Добавить стиль")
+        print("9. Удалить стиль")
+        print("0. Назад")
         choice = input("Введите ваш выбор: ")
 
         if choice == "1":
@@ -278,6 +317,18 @@ def product_menu():
         elif choice == "3":
             delete_product()
         elif choice == "4":
+            get_categories()
+        elif choice == "5":
+            add_category()
+        elif choice == "6":
+            delete_category()
+        elif choice == "7":
+            get_styles()
+        elif choice == "8":
+            add_styles()
+        elif choice == "9":
+            delete_style()
+        elif choice == "0":
             return None
         else:
             print("Неверный выбор. Пожалуйста, выберите снова.")
