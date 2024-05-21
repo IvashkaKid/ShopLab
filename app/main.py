@@ -260,22 +260,59 @@ def add_category():
     session.commit()
     print(f"Добавлена новая категория: {name}")
 
+
 def delete_category():
     while True:
         try:
-            category_id = int(input("Введите ID товара для удаления: "))
-            # Проверка существования товара с указанным ID
+            category_id = int(input("Введите ID категории для удаления: "))
             if session.query(Category).filter_by(id=category_id).count() == 0:
-                print("Ошибка: товар с указанным ID не существует.")
+                print("Ошибка: категория с указанным ID не существует.")
                 continue
             break
         except ValueError:
-            print("Ошибка: введите целочисленное значение для ID товара.")
+            print("Ошибка: введите целочисленное значение для ID категории.")
 
     category = session.query(Category).filter_by(id=category_id).first()
     session.delete(category)
     session.commit()
     print(f"Категория с ID {category_id} удалена")
+
+
+def get_styles():
+    styles = session.query(Style).all()
+    table = PrettyTable()
+    table.field_names = ["ID", "Name"]
+    for style in styles:
+        table.add_row([style.id, style.name])
+
+    print(table)
+
+
+def add_style():
+    name = input("Введите имя новой категории: ")
+
+    new_style = Style(name=name)
+    session.add(new_style)
+    session.commit()
+    print(f"Добавлен новый стиль: {name}")
+
+
+def delete_style():
+    while True:
+        try:
+            style_id = int(input("Введите ID стиля для удаления: "))
+            if session.query(Style).filter_by(id=style_id).count() == 0:
+                print("Ошибка: стиль с указанным ID не существует.")
+                continue
+            break
+        except ValueError:
+            print("Ошибка: введите целочисленное значение для ID стиля.")
+
+    style = session.query(Style).filter_by(id=style_id).first()
+    session.delete(style)
+    session.commit()
+    print(f"Стиль с ID {style_id} удалена")
+
 
 def admin_menu():
     while True:
@@ -325,13 +362,16 @@ def product_menu():
         elif choice == "7":
             get_styles()
         elif choice == "8":
-            add_styles()
+            add_style()
         elif choice == "9":
             delete_style()
         elif choice == "0":
             return None
         else:
             print("Неверный выбор. Пожалуйста, выберите снова.")
+
+def set_menu():
+
 
 
 def auth_menu():
