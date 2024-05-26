@@ -52,7 +52,7 @@ def auth(username, password):
     cursor = db.cursor()
     query = """SELECT * FROM users WHERE username=?"""
     cursor.execute(query, (username,))
-    user = cursor.fetchone()
+    user = list(cursor.fetchone())
 
     db.close()
 
@@ -115,6 +115,7 @@ def main_menu(cart, user):
         print("1. Посмотреть каталог")
         print("2. Посмотреть корзину")
         print("3. Выйти из аккаунта")
+        print("4. Изменить имя")
         choice = input("Enter your choice: ")
         if choice == "1":
             catalog_menu(cart)
@@ -170,6 +171,8 @@ def main_menu(cart, user):
                     break
         elif choice == "3":
             return None
+        elif choice == "4":
+            change_user_name(user, database_path)
 
 
 def get_all_products_orm():
@@ -243,6 +246,76 @@ def delete_product():
     session.commit()
     print(f"Товар с ID {product_id} удален")
 
+
+def update_product():
+    while True:
+        try:
+            product_id = int(input("Введите ID товара, который хотите обновить: "))
+            product = session.query(Product).filter_by(id=product_id).first()
+            if not product:
+                print("Ошибка: Товар с указанным ID не найден.")
+                continue
+            break
+        except ValueError:
+            print("Ошибка: введите целочисленное значение для ID товара.")
+
+    print(
+        f"Текущие данные товара:\nНазвание: {product.name}\nЦена: {product.price}\nID категории: {product.category_id}\n"
+        f"ID стиля: {product.style_id}")
+
+    # Обновляем название товара
+    new_name = input(
+        f"Введите новое название товара (текущая: {product.name}, оставьте пустым для сохранения текущего): ")
+    if new_name:
+        product.name = new_name
+
+    # Обновляем цену товара
+    while True:
+        new_price = input(
+            f"Введите новую цену товара (текущая: {product.price}, оставьте пустым для сохранения текущей): ")
+        if not new_price:
+            break
+        try:
+            product.price = float(new_price)
+            break
+        except ValueError:
+            print("Ошибка: введите числовое значение для цены.")
+
+    # Обновляем ID категории товара
+    while True:
+        new_category_id = input(
+            f"Введите новый ID категории товара (текущая: {product.category_id}, оставьте пустым для сохранения текущей): ")
+        if not new_category_id:
+            break
+        try:
+            new_category_id = int(new_category_id)
+            if session.query(Category).filter_by(id=new_category_id).count() == 0:
+                print("Ошибка: категория с указанным ID не существует.")
+                continue
+            product.category_id = new_category_id
+            break
+        except ValueError:
+            print("Ошибка: введите целочисленное значение для ID категории.")
+
+    # Обновляем ID стиля товара
+    while True:
+        new_style_id = input(
+            f"Введите новый ID стиля товара (текущая: {product.style_id}, оставьте пустым для сохранения текущей): ")
+        if not new_style_id:
+            break
+        try:
+            new_style_id = int(new_style_id)
+            if session.query(Style).filter_by(id=new_style_id).count() == 0:
+                print("Ошибка: стиль с указанным ID не существует.")
+                continue
+            product.style_id = new_style_id
+            break
+        except ValueError:
+            print("Ошибка: введите целочисленное значение для ID стиля.")
+
+    # Сохраняем изменения в базу данных
+    session.commit()
+    print(f"Товар с ID {product_id} успешно обновлён.")
 
 def get_categories():
     categories = session.query(Category).all()
@@ -496,12 +569,13 @@ def product_menu():
         print("1. Получить список товаров")
         print("2. Добавить товар")
         print("3. Удалить товар")
-        print("4. Получить список категорий")
-        print("5. Добавить категорию")
-        print("6. Удалить категорию")
-        print("7. Получить список стилей")
-        print("8. Добавить стиль")
-        print("9. Удалить стиль")
+        print("4. Изменить товар")
+        print("5. Получить список категорий")
+        print("6. Добавить категорию")
+        print("7. Удалить категорию")
+        print("8. Получить список стилей")
+        print("9. Добавить стиль")
+        print("10. Удалить стиль")
         print("0. Назад")
         choice = input("Введите ваш выбор: ")
 
@@ -512,16 +586,18 @@ def product_menu():
         elif choice == "3":
             delete_product()
         elif choice == "4":
-            get_categories()
+            update_product()
         elif choice == "5":
-            add_category()
+            get_categories()
         elif choice == "6":
-            delete_category()
+            add_category()
         elif choice == "7":
-            get_styles()
+            delete_category()
         elif choice == "8":
-            add_style()
+            get_styles()
         elif choice == "9":
+            add_style()
+        elif choice == "10":
             delete_style()
         elif choice == "0":
             return None
@@ -760,6 +836,22 @@ def get_set(id):
     return set_one
 
 
+def change_user_name(user, db_path):
+    new_name = input("Введите новое имя: ")
+
+    try:
+        db = sqlite3.connect(db_path)
+        cursor = db.cursor()
+        cursor.execute("UPDATE users SET name = ? WHERE id = ?", (new_name, user[0]))
+        db.commit()
+        db.close()
+
+        user[1] = new_name
+        print(f"Ваше имя было успешно изменено на {new_name}.")
+    except sqlite3.Error as e:
+        print(f"Ошибка при обновлении имени пользователя: {e}")
+
+
 def main():
     user_role_id = None
     user = None
@@ -774,6 +866,7 @@ def main():
                 cart = {'products': [],
                         'sets': []}
         # Блок основного меню
+        print(f'Добро пожаловать, {user[1]}')
         if user_role_id == 1:
             user_role_id = main_menu(cart, user)
         elif user_role_id == 2:
